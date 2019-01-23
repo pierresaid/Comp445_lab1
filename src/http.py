@@ -4,6 +4,14 @@ import re
 from uu import encode
 
 
+class Response:
+    def __init__(self):
+        self.headers = None
+        self.body = None
+        self.code = None
+        self.status = None
+
+
 class Http:
 
     def __init__(self, url):
@@ -38,7 +46,7 @@ class Http:
         result = self.read_result()
         # print(str(result, encoding='utf-8'), end='')
         s.close()
-        return str(result, encoding='utf-8')
+        return result
 
     def post(self, data=None, headers=None):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,17 +69,35 @@ class Http:
         result = self.read_result()
         # print(str(result, encoding='utf-8'), end='')
         s.close()
-        return str(result, encoding='utf-8')
+        return result
 
     def read_result(self):
+        resp = Response()
         result = b''
         new_res = None
-        # while not re.search("Content-Length:.(.*?)\\r\\n", str(result, encoding='utf-8')):
         while result.find(b'\r\n\r\n') == -1 and (new_res is None or len(new_res) != 0):
             new_res = self.socket.recv(1)
             result += new_res
         begin_length_idx = result.find(b'Content-Length: ') + len('Content-Length: ')
         end_lenght_idx = result[begin_length_idx:].find(b'\r\n')
         content_length = int(str(result[begin_length_idx:][:end_lenght_idx], encoding='utf-8'))
-        result = self.socket.recv(content_length)
-        return result
+        headers = self.get_headers(result)
+        self.get_code_and_status(resp, result)
+        body = self.socket.recv(content_length)
+        resp.headers = headers
+        resp.body = body
+        return resp
+
+    def get_headers(self, result):
+        reg = re.findall("(?P<key>.*?):(?P<value>.*?)(?:(\\r\\n){1})", str(result, encoding='utf-8'))
+        reg = [r[:-1] for r in reg]
+        headers = {}
+        for (h) in reg:
+            headers[h[0]] = ''.join(h[1:])
+        return headers
+
+    def get_code_and_status(self, resp, result):
+        reg = re.findall("HTTP(.*?)(\\r\\n)", str(result, encoding='utf-8'))
+        reg2 = re.findall("(\d\d\d)\ (.+)", reg[0][0])
+        resp.status = reg2[0][0]
+        resp.code = reg2[0][1]
