@@ -1,15 +1,17 @@
-import argparse
+import logging
 
+from src.Core import Core
 from src.http import Http
 
-# parser = argparse.ArgumentParser(description='httpc is a curl-like application but supports HTTP protocol only.')
-# parser.add_argument('val',
-#                     choices=['get', 'post'],
-#                     help=['Special testing value'])
-# parser.add_argument('url')
-# args = parser.parse_args()
-# print(args.url)
-# exit(0)
+logging.basicConfig(format='httpc: %(message)s', level=logging.DEBUG)
+
+core = Core()
+try:
+    core.run()
+except Exception as e:
+    logging.error(e)
+exit(0)
+
 # req = Http("http://www.google.fr")
 req = Http("http://httpbin.org/get?course=networking&assignment=1")
 # req = Http("http://httpbin.org/status/418")
@@ -29,3 +31,4 @@ print("Body : " + str(res.body, encoding='utf-8'))
 
 # TODO command line interpreter
 # TODO parse status body header etc...
+# TODO Handle port

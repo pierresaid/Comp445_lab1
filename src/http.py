@@ -1,15 +1,16 @@
+import logging
 import socket
-from urllib.parse import urlparse, ParseResult, parse_qs
+from urllib.parse import urlparse
 import re
-from uu import encode
 
 
 class Response:
     def __init__(self):
         self.headers = None
         self.body = None
-        self.code = None
-        self.status = None
+        self.code = -1
+        self.status = ''
+        self.version = ''
 
 
 class Http:
@@ -34,7 +35,11 @@ class Http:
     def get(self, headers=None):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket = s
-        s.connect((self.hostname, 80))
+        try:
+            s.connect((self.hostname, 80))
+        except socket.error:
+            raise Exception(f"Could not resolve host: {self.hostname}")
+
         query = "GET {0} HTTP/1.1\r\nHost: {1}\r\n".format(self.path, self.hostname)
         if headers is not None:
             for h in headers:
@@ -89,7 +94,7 @@ class Http:
         return resp
 
     def get_headers(self, result):
-        reg = re.findall("(?P<key>.*?):(?P<value>.*?)(?:(\\r\\n){1})", str(result, encoding='utf-8'))
+        reg = re.findall("(?P<key>.*?):\ +(?P<value>.*?)(?:(\\r\\n){1})", str(result, encoding='utf-8'))
         reg = [r[:-1] for r in reg]
         headers = {}
         for (h) in reg:
@@ -98,6 +103,7 @@ class Http:
 
     def get_code_and_status(self, resp, result):
         reg = re.findall("HTTP(.*?)(\\r\\n)", str(result, encoding='utf-8'))
-        reg2 = re.findall("(\d\d\d)\ (.+)", reg[0][0])
-        resp.status = reg2[0][0]
-        resp.code = reg2[0][1]
+        reg2 = re.findall("/(.+)\ +(\d\d\d)\ (.+)", reg[0][0])
+        resp.version = reg2[0][0]
+        resp.status = reg2[0][1]
+        resp.code = reg2[0][2]
