@@ -1,6 +1,6 @@
 import argparse
-import ast
 from src.http import Http
+import sys
 
 
 class Core:
@@ -19,7 +19,7 @@ class Core:
                                  action='store_true')
 
     def run(self):
-        self.args = self.parser.parse_args()
+        self.args = self.parser.parse_args(sys.argv[1:])
         args = self.args
         http = Http(args.url)
         if args.method == 'get':
@@ -29,7 +29,8 @@ class Core:
         if args.v:
             self.print_details(resp)
 
-        print(str(resp.body, encoding='utf-8'), end='')
+        sys.stdout.write(str(resp.body, encoding='utf-8'))
+        # print(str(resp.body, encoding='utf-8'), end='')
 
     def print_details(self, resp):
         print(f"< HTTP/{resp.version} {resp.status} {resp.code}")

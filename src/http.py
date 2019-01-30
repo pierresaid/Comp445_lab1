@@ -1,4 +1,3 @@
-import logging
 import socket
 from urllib.parse import urlparse
 import re
@@ -29,6 +28,10 @@ class Http:
             self.path += "?" + parsed_url.query
         if self.path == '':
             self.path = '/'
+        if parsed_url.port is None:
+            self.port = 80
+        else:
+            self.port = parsed_url.port
         # print(self.path)
         # print(self.hostname)
 
@@ -36,7 +39,7 @@ class Http:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket = s
         try:
-            s.connect((self.hostname, 80))
+            s.connect((self.hostname, self.port))
         except socket.error:
             raise Exception(f"Could not resolve host: {self.hostname}")
 
@@ -56,7 +59,7 @@ class Http:
     def post(self, data=None, headers=None):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket = s
-        s.connect((self.hostname, 80))
+        s.connect((self.hostname, self.port))
 
         query = "POST {0} HTTP/1.1\r\nHost: {1}\r\n".format(self.path, self.hostname)
         if headers is not None:
@@ -84,6 +87,8 @@ class Http:
             new_res = self.socket.recv(1)
             result += new_res
         begin_length_idx = result.find(b'Content-Length: ') + len('Content-Length: ')
+        if begin_length_idx is 15:
+            raise Exception("HTTP version not supported")
         end_lenght_idx = result[begin_length_idx:].find(b'\r\n')
         content_length = int(str(result[begin_length_idx:][:end_lenght_idx], encoding='utf-8'))
         headers = self.get_headers(result)
