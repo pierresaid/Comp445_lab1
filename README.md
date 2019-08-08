@@ -1,2 +1,2 @@
 # Comp445_lab1
-A HTTP client application python
+A HTTP client application in python
